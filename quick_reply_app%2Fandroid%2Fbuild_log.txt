@@ -1,0 +1,190 @@
+Build started at 2026/04/25 周六 15:11:53.71 
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle:compileKotlin UP-TO-DATE
+> Task :gradle:compileJava NO-SOURCE
+> Task :gradle:compileGroovy NO-SOURCE
+> Task :gradle:pluginDescriptors UP-TO-DATE
+> Task :gradle:processResources UP-TO-DATE
+> Task :gradle:classes UP-TO-DATE
+> Task :gradle:jar UP-TO-DATE
+> Task :app:DebugMinSdkCheck
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:compileFlutterBuildDebug UP-TO-DATE
+> Task :app:packJniLibsflutterBuildDebug UP-TO-DATE
+> Task :file_picker:preBuild UP-TO-DATE
+> Task :file_picker:preDebugBuild UP-TO-DATE
+> Task :file_picker:writeDebugAarMetadata UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:preBuild UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:preDebugBuild UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:writeDebugAarMetadata UP-TO-DATE
+> Task :jni:preBuild UP-TO-DATE
+> Task :jni:preDebugBuild UP-TO-DATE
+> Task :jni:writeDebugAarMetadata UP-TO-DATE
+> Task :jni_flutter:preBuild UP-TO-DATE
+> Task :jni_flutter:preDebugBuild UP-TO-DATE
+> Task :jni_flutter:writeDebugAarMetadata UP-TO-DATE
+> Task :share_plus:preBuild UP-TO-DATE
+> Task :share_plus:preDebugBuild UP-TO-DATE
+> Task :share_plus:writeDebugAarMetadata UP-TO-DATE
+> Task :sqflite_android:preBuild UP-TO-DATE
+> Task :sqflite_android:preDebugBuild UP-TO-DATE
+> Task :sqflite_android:writeDebugAarMetadata UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:cleanMergeDebugAssets
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :file_picker:mergeDebugShaders UP-TO-DATE
+> Task :file_picker:compileDebugShaders NO-SOURCE
+> Task :file_picker:generateDebugAssets UP-TO-DATE
+> Task :file_picker:mergeDebugAssets UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:mergeDebugShaders UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:compileDebugShaders NO-SOURCE
+> Task :flutter_plugin_android_lifecycle:generateDebugAssets UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:mergeDebugAssets UP-TO-DATE
+> Task :jni:mergeDebugShaders UP-TO-DATE
+> Task :jni:compileDebugShaders NO-SOURCE
+> Task :jni:generateDebugAssets UP-TO-DATE
+> Task :jni:mergeDebugAssets UP-TO-DATE
+> Task :jni_flutter:mergeDebugShaders UP-TO-DATE
+> Task :jni_flutter:compileDebugShaders NO-SOURCE
+> Task :jni_flutter:generateDebugAssets UP-TO-DATE
+> Task :jni_flutter:mergeDebugAssets UP-TO-DATE
+> Task :share_plus:mergeDebugShaders UP-TO-DATE
+> Task :share_plus:compileDebugShaders NO-SOURCE
+> Task :share_plus:generateDebugAssets UP-TO-DATE
+> Task :share_plus:mergeDebugAssets UP-TO-DATE
+> Task :sqflite_android:mergeDebugShaders UP-TO-DATE
+> Task :sqflite_android:compileDebugShaders NO-SOURCE
+> Task :sqflite_android:generateDebugAssets UP-TO-DATE
+> Task :sqflite_android:mergeDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets
+> Task :app:copyFlutterAssetsDebug
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :file_picker:generateDebugResValues UP-TO-DATE
+> Task :file_picker:generateDebugResources UP-TO-DATE
+> Task :file_picker:packageDebugResources UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:generateDebugResValues UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:generateDebugResources UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:packageDebugResources UP-TO-DATE
+> Task :jni:generateDebugResValues UP-TO-DATE
+> Task :jni:generateDebugResources UP-TO-DATE
+> Task :jni:packageDebugResources UP-TO-DATE
+> Task :jni_flutter:generateDebugResValues UP-TO-DATE
+> Task :jni_flutter:generateDebugResources UP-TO-DATE
+> Task :jni_flutter:packageDebugResources UP-TO-DATE
+> Task :share_plus:generateDebugResValues UP-TO-DATE
+> Task :share_plus:generateDebugResources UP-TO-DATE
+> Task :share_plus:packageDebugResources UP-TO-DATE
+> Task :sqflite_android:generateDebugResValues UP-TO-DATE
+> Task :sqflite_android:generateDebugResources UP-TO-DATE
+> Task :sqflite_android:packageDebugResources UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :file_picker:extractDeepLinksDebug UP-TO-DATE
+> Task :file_picker:processDebugManifest UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:extractDeepLinksDebug UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:processDebugManifest UP-TO-DATE
+> Task :jni:extractDeepLinksDebug UP-TO-DATE
+> Task :jni:processDebugManifest UP-TO-DATE
+> Task :jni_flutter:extractDeepLinksDebug UP-TO-DATE
+> Task :jni_flutter:processDebugManifest UP-TO-DATE
+> Task :share_plus:extractDeepLinksDebug UP-TO-DATE
+> Task :share_plus:processDebugManifest UP-TO-DATE
+> Task :sqflite_android:extractDeepLinksDebug UP-TO-DATE
+> Task :sqflite_android:processDebugManifest UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:outputDebugAppLinkSettings UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :file_picker:compileDebugLibraryResources UP-TO-DATE
+> Task :file_picker:parseDebugLocalResources UP-TO-DATE
+> Task :file_picker:generateDebugRFile UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:compileDebugLibraryResources UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:parseDebugLocalResources UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:generateDebugRFile UP-TO-DATE
+> Task :jni:compileDebugLibraryResources UP-TO-DATE
+> Task :jni:parseDebugLocalResources UP-TO-DATE
+> Task :jni:generateDebugRFile UP-TO-DATE
+> Task :jni_flutter:compileDebugLibraryResources UP-TO-DATE
+> Task :jni_flutter:parseDebugLocalResources UP-TO-DATE
+> Task :jni_flutter:generateDebugRFile UP-TO-DATE
+> Task :share_plus:compileDebugLibraryResources UP-TO-DATE
+> Task :share_plus:parseDebugLocalResources UP-TO-DATE
+> Task :share_plus:generateDebugRFile UP-TO-DATE
+> Task :sqflite_android:compileDebugLibraryResources UP-TO-DATE
+> Task :sqflite_android:parseDebugLocalResources UP-TO-DATE
+> Task :sqflite_android:generateDebugRFile UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :file_picker:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :flutter_plugin_android_lifecycle:javaPreCompileDebug UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:compileDebugJavaWithJavac UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :file_picker:compileDebugKotlin UP-TO-DATE
+> Task :file_picker:javaPreCompileDebug UP-TO-DATE
+> Task :file_picker:compileDebugJavaWithJavac NO-SOURCE
+> Task :file_picker:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :jni:javaPreCompileDebug UP-TO-DATE
+> Task :jni:compileDebugJavaWithJavac UP-TO-DATE
+> Task :jni:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :jni_flutter:javaPreCompileDebug UP-TO-DATE
+> Task :jni_flutter:compileDebugJavaWithJavac UP-TO-DATE
+> Task :jni_flutter:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :share_plus:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :share_plus:compileDebugKotlin UP-TO-DATE
+> Task :share_plus:javaPreCompileDebug UP-TO-DATE
+> Task :share_plus:compileDebugJavaWithJavac NO-SOURCE
+> Task :share_plus:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :sqflite_android:javaPreCompileDebug UP-TO-DATE
+> Task :sqflite_android:compileDebugJavaWithJavac UP-TO-DATE
+> Task :sqflite_android:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :app:compileDebugKotlin FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/Administrator/.qclaw/workspace/quick-reply-app/quick_reply_app/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+> Error while evaluating property 'friendPathsSet$kotlin_gradle_plugin_common' of task ':app:compileDebugKotlin'.
+   > Could not resolve all files for configuration ':app:debugCompileClasspath'.
+      > Failed to transform armeabi_v7a_debug-1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb.jar (io.flutter:armeabi_v7a_debug:1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb) to match attributes {artifactType=android-classes-jar, org.gradle.category=library, org.gradle.libraryelements=jar, org.gradle.status=release, org.gradle.usage=java-api}.
+         > Could not download armeabi_v7a_debug-1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb.jar (io.flutter:armeabi_v7a_debug:1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb)
+            > Could not get resource 'https://storage.googleapis.com/download.flutter.io/io/flutter/armeabi_v7a_debug/1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb/armeabi_v7a_debug-1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb.jar'.
+               > Could not GET 'https://storage.googleapis.com/download.flutter.io/io/flutter/armeabi_v7a_debug/1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb/armeabi_v7a_debug-1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb.jar'.
+                  > 涓嶇煡閬撹繖鏍风殑涓绘満銆?(storage.googleapis.com)
+      > Failed to transform arm64_v8a_debug-1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb.jar (io.flutter:arm64_v8a_debug:1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb) to match attributes {artifactType=android-classes-jar, org.gradle.category=library, org.gradle.libraryelements=jar, org.gradle.status=release, org.gradle.usage=java-api}.
+         > Could not download arm64_v8a_debug-1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb.jar (io.flutter:arm64_v8a_debug:1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb)
+            > Could not get resource 'https://storage.googleapis.com/download.flutter.io/io/flutter/arm64_v8a_debug/1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb/arm64_v8a_debug-1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb.jar'.
+               > Could not GET 'https://storage.googleapis.com/download.flutter.io/io/flutter/arm64_v8a_debug/1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb/arm64_v8a_debug-1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb.jar'.
+                  > storage.googleapis.com
+      > Failed to transform x86_64_debug-1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb.jar (io.flutter:x86_64_debug:1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb) to match attributes {artifactType=android-classes-jar, org.gradle.category=library, org.gradle.libraryelements=jar, org.gradle.status=release, org.gradle.usage=java-api}.
+         > Could not download x86_64_debug-1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb.jar (io.flutter:x86_64_debug:1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb)
+            > Could not get resource 'https://storage.googleapis.com/download.flutter.io/io/flutter/x86_64_debug/1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb/x86_64_debug-1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb.jar'.
+               > Could not GET 'https://storage.googleapis.com/download.flutter.io/io/flutter/x86_64_debug/1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb/x86_64_debug-1.0.0-425cfb54d01a9472b3e81d9e76fd63a4a44cfbcb.jar'.
+                  > storage.googleapis.com
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 35s
+110 actionable tasks: 5 executed, 105 up-to-date
