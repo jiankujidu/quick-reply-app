@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item type="id" name="overlay_x" />
+    <item type="id" name="overlay_y" />
+    <item type="id" name="overlay_params" />
+</resources>
