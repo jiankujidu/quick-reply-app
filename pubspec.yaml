@@ -1,0 +1,39 @@
+name: quick_reply_app
+description: 客服快捷回复与话术管理工具
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  sqflite: ^2.3.0
+  path_provider: ^2.1.1
+  http: ^1.1.0
+  provider: ^6.1.1
+  file_picker: ^8.0.0
+  share_plus: ^12.0.2
+  intl: ^0.18.1
+  cached_network_image: ^3.3.0
+  flutter_slidable: ^3.0.1
+  uuid: ^4.2.1
+  image_picker: ^1.0.7
+  dio: ^5.4.0
+  esys_flutter_share_plus: ^2.0.0
+  archive: ^3.6.1
+  excel: ^4.0.6
+  url_launcher: ^6.2.4
+  # flutter_overlay_window removed — using native MethodChannel overlay
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/

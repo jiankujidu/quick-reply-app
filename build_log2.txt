@@ -1,0 +1,13 @@
+Build started at 2026/04/25 ÷‹¡˘ 15:13:39.12 
+Running Gradle task 'assembleRelease'...                        
+Exception in thread "main" java.lang.RuntimeException: Gradle distribution 'https://services.gradle.org/distributions/gradle-9.4.1-all.zip' does not contain any directories. Expected to find exactly 1 directory.
+	at org.gradle.wrapper.Install.getAndVerifyDistributionRoot(Install.java:115)
+	at org.gradle.wrapper.Install.access$000(Install.java:27)
+	at org.gradle.wrapper.Install$1.call(Install.java:76)
+	at org.gradle.wrapper.Install$1.call(Install.java:48)
+	at org.gradle.wrapper.ExclusiveFileAccessManager.access(ExclusiveFileAccessManager.java:65)
+	at org.gradle.wrapper.Install.createDist(Install.java:48)
+	at org.gradle.wrapper.WrapperExecutor.execute(WrapperExecutor.java:128)
+	at org.gradle.wrapper.GradleWrapperMain.main(GradleWrapperMain.java:61)
+Running Gradle task 'assembleRelease'...                           271ms
+Gradle task assembleRelease failed with exit code 1
