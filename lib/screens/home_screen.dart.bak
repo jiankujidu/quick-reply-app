@@ -1,0 +1,1418 @@
+import 'dart:io';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:share_plus/share_plus.dart';
+import '../providers/message_provider.dart';
+import '../providers/auth_provider.dart';
+import '../models/message.dart';
+import '../services/database_service.dart';
+import '../services/overlay_service.dart';
+import 'editor_screen.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String? _selectedCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(_onTabChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<MessageProvider>().loadMessages();
+    });
+  }
+
+  int _lastTabIndex = 0;
+
+  void _onTabChanged() {
+    if (_tabController.index == _lastTabIndex) return;
+    _lastTabIndex = _tabController.index;
+    // 切换tab时清除搜索
+    _searchController.clear();
+    setState(() => _searchQuery = '');
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String? _currentLevel() {
+    // 第一个 tab 是"全部"，不过滤 level
+    if (_tabController.index == 0) return null;
+    final levels = [null, 'company', 'group', 'private'];
+    return levels[_tabController.index];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final messageProvider = context.watch<MessageProvider>();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('📝 话术库', style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () => _showDebugInfo(context),
+            tooltip: '调试信息',
+          ),
+          IconButton(
+            icon: const Icon(Icons.category),
+            onPressed: () => _showCategoryManager(context),
+            tooltip: '分类管理',
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: const [
+            Tab(text: '📋 全部'),
+            Tab(text: '🏢 公司级'),
+            Tab(text: '👥 小组级'),
+            Tab(text: '👤 我的'),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          // 搜索框
+          _buildSearchBar(),
+          // 分类筛选条
+          _buildCategoryChips(messageProvider),
+          const SizedBox(height: 4),
+          // 话术列表
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildMessageList(null, messageProvider),   // 全部
+                _buildMessageList('company', messageProvider),
+                _buildMessageList('group', messageProvider),
+                _buildMessageList('private', messageProvider),
+              ],
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _navigateToEditor(context),
+        icon: const Icon(Icons.add),
+        label: const Text('新建话术'),
+      ),
+    );
+  }
+
+  /// 横向分类筛选条
+  Widget _buildCategoryChips(MessageProvider provider) {
+    if (provider.categories.isEmpty) return const SizedBox.shrink();
+    final cats = provider.categories.where((c) => c['parentId'] == null).toList();
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: FilterChip(
+              label: const Text('全部'),
+              selected: _selectedCategory == null,
+              selectedColor: Colors.blue.withOpacity(0.15),
+              checkmarkColor: Colors.blue,
+              side: BorderSide(color: _selectedCategory == null ? Colors.blue : Colors.grey.shade300),
+              onSelected: (_) => setState(() => _selectedCategory = null),
+            ),
+          ),
+          ...cats.map((cat) {
+            final name = cat['name'] as String;
+            final color = _getCategoryColor(name, provider);
+            final selected = _selectedCategory == name;
+            return Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: FilterChip(
+                avatar: CircleAvatar(backgroundColor: color, radius: 8),
+                label: Text(name),
+                selected: selected,
+                selectedColor: color.withOpacity(0.15),
+                checkmarkColor: color,
+                side: BorderSide(color: selected ? color : Colors.grey.shade300),
+                onSelected: (_) => setState(() => _selectedCategory = selected ? null : name),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: '搜索话术...',
+          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: Colors.grey),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: const BorderSide(color: Colors.blue, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+          filled: true,
+          fillColor: Colors.grey.shade50,
+        ),
+        onChanged: (value) {
+          setState(() => _searchQuery = value);
+        },
+      ),
+    );
+  }
+
+  /// 根据 tab 过滤内存中的话术列表（不再重复请求数据库）
+  List<Message> _filterMessages(List<Message> all, String? level) {
+    if (level == null) return all;
+    return all.where((m) {
+      final ml = m.level.toLowerCase();
+      final tl = level.toLowerCase();
+      if (ml == tl) return true;
+      if (tl == 'company' && (ml == '公司级' || ml.contains('公司'))) return true;
+      if (tl == 'group' && (ml == '小组级' || ml.contains('小组'))) return true;
+      if (tl == 'private' && (ml == '私人' || ml == '我的' || ml.contains('私人'))) return true;
+      return false;
+    }).toList();
+  }
+
+  Widget _buildMessageList(String? level, MessageProvider provider) {
+    // 加载中
+    if (provider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // 有错误
+    if (provider.error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 60, color: Colors.red[300]),
+            const SizedBox(height: 16),
+            Text('加载失败', style: TextStyle(color: Colors.red[500], fontSize: 16)),
+            const SizedBox(height: 8),
+            Text('${provider.error}', style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: () => provider.loadMessages(), child: const Text('重试')),
+          ],
+        ),
+      );
+    }
+
+    // 过滤消息
+    List<Message> filtered = _filterMessages(provider.messages, level);
+
+    // 搜索过滤
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      filtered = filtered.where((m) {
+        return m.title.toLowerCase().contains(q) ||
+            m.content.toLowerCase().contains(q) ||
+            m.tags.any((t) => t.toLowerCase().contains(q)) ||
+            m.category.toLowerCase().contains(q) ||
+            (m.subcategory?.toLowerCase().contains(q) ?? false);
+      }).toList();
+    }
+
+    // 空状态
+    if (filtered.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.message_outlined, size: 80, color: Colors.grey[300]),
+            const SizedBox(height: 16),
+            Text('暂无${_getLevelName(level)}话术',
+              style: TextStyle(color: Colors.grey[500], fontSize: 16)),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => provider.loadMessages(),
+              icon: const Icon(Icons.refresh),
+              label: const Text('刷新'),
+            ),
+            const SizedBox(height: 4),
+            TextButton.icon(
+              onPressed: () => _navigateToEditor(context, level: level),
+              icon: const Icon(Icons.add),
+              label: const Text('添加话术'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 有数据：显示分类列表
+    return RefreshIndicator(
+      onRefresh: () => provider.loadMessages(),
+      child: _buildCategorizedList(filtered, provider),
+    );
+  }
+
+  /// 构建按分类层级组织的列表
+  Widget _buildCategorizedList(List<Message> messages, MessageProvider provider) {
+    // 按一级分类分组
+    final categoryGroups = <String, List<Message>>{};
+    for (final msg in messages) {
+      final category = msg.category.isEmpty ? '未分类' : msg.category;
+      categoryGroups.putIfAbsent(category, () => []).add(msg);
+    }
+
+    // 按分类筛选条过滤
+    if (_selectedCategory != null) {
+      final filtered = <String, List<Message>>{};
+      if (categoryGroups.containsKey(_selectedCategory)) {
+        filtered[_selectedCategory!] = categoryGroups[_selectedCategory!]!;
+      }
+      categoryGroups.clear();
+      categoryGroups.addAll(filtered);
+    }
+
+    // 按一级分类名称排序
+    final sortedCategories = categoryGroups.keys.toList()..sort();
+
+    if (sortedCategories.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.filter_alt_off, size: 48, color: Colors.grey[300]),
+            const SizedBox(height: 8),
+            Text('该分类下暂无话术', style: TextStyle(color: Colors.grey[400])),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      itemCount: sortedCategories.length,
+      itemBuilder: (context, index) {
+        final category = sortedCategories[index];
+        final categoryMessages = categoryGroups[category]!;
+        return _buildCategorySection(category, categoryMessages, provider);
+      },
+    );
+  }
+
+  /// 根据一级分类名获取颜色（从 provider.categories 匹配）
+  Color _getCategoryColor(String categoryName, MessageProvider provider) {
+    for (final cat in provider.categories) {
+      if (cat['name'] == categoryName && cat['color'] != null) {
+        final hex = (cat['color'] as String).replaceFirst('#', '');
+        try {
+          return Color(int.parse('FF$hex', radix: 16));
+        } catch (_) {}
+      }
+    }
+    // 默认颜色轮
+    final defaults = [Colors.blue, Colors.green, Colors.orange, Colors.purple, Colors.red, Colors.teal];
+    return defaults[categoryName.hashCode.abs() % defaults.length];
+  }
+
+  /// 构建一级分类区块 - 紧凑彩色版（左侧色条）
+  Widget _buildCategorySection(String category, List<Message> messages, MessageProvider provider) {
+    // 按二级分类再分组
+    final subcategoryGroups = <String, List<Message>>{};
+    for (final msg in messages) {
+      final sub = msg.subcategory?.isEmpty ?? true ? '默认' : msg.subcategory!;
+      subcategoryGroups.putIfAbsent(sub, () => []).add(msg);
+    }
+    final sortedSubs = subcategoryGroups.keys.toList()..sort();
+    final color = _getCategoryColor(category, provider);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 1))],
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 左侧色条
+            Container(
+              width: 4,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+              ),
+            ),
+          // 右侧内容
+          Expanded(
+            child: ExpansionTile(
+              tilePadding: const EdgeInsets.only(left: 8, right: 12),
+              childrenPadding: const EdgeInsets.only(bottom: 4, left: 4),
+              initiallyExpanded: true,
+              title: Row(
+                children: [
+                  // 彩色圆点
+                  Container(
+                    width: 10, height: 10,
+                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(category,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey[800])),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text('${messages.length}',
+                      style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+              children: sortedSubs.map((sub) {
+                final subMsgs = subcategoryGroups[sub]!;
+                return _buildSubcategorySection(sub, subMsgs, provider, color);
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+
+  /// 构建二级分类区块
+  Widget _buildSubcategorySection(String subcategory, List<Message> messages, MessageProvider provider, Color accentColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: Card(
+        elevation: 0,
+        color: Colors.grey[50],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        child: ExpansionTile(
+          title: Row(
+            children: [
+              Icon(Icons.subdirectory_arrow_right, size: 16, color: accentColor.withOpacity(0.7)),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  subcategory,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.grey[800]),
+                ),
+              ),
+              Text(
+                '${messages.length}',
+                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              ),
+            ],
+          ),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+          childrenPadding: const EdgeInsets.only(bottom: 4),
+          initiallyExpanded: false,
+          children: messages.map((msg) => _buildMessageCardCompact(msg, provider)).toList(),
+        ),
+      ),
+    );
+  }
+
+  /// 紧凑版话术卡片（用于分类内显示）
+  Widget _buildMessageCardCompact(Message message, MessageProvider provider) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Slidable(
+        endActionPane: ActionPane(
+          motion: const ScrollMotion(),
+          children: [
+            SlidableAction(
+              onPressed: (_) => _navigateToEditor(context, message: message),
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              icon: Icons.edit,
+              label: '编辑',
+              borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
+            ),
+            SlidableAction(
+              onPressed: (_) => _confirmDelete(context, message, provider),
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              icon: Icons.delete,
+              label: '删除',
+              borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
+            ),
+          ],
+        ),
+        child: InkWell(
+          onTap: () => _showMessageDetail(context, message),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        message.title,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        message.content,
+                        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                // 附件小图标
+                if (message.images.isNotEmpty)
+                  Padding(padding: const EdgeInsets.only(left: 4), child: Icon(Icons.image, size: 14, color: Colors.blue[300])),
+                if (message.files.isNotEmpty)
+                  Padding(padding: const EdgeInsets.only(left: 4), child: Icon(Icons.attach_file, size: 14, color: Colors.orange[300])),
+                IconButton(
+                  icon: Icon(Icons.copy, size: 16, color: Colors.grey[400]),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  onPressed: () => _copyText(context, message),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessageCard(Message message, MessageProvider provider) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Slidable(
+        endActionPane: ActionPane(
+          motion: const ScrollMotion(),
+          children: [
+            SlidableAction(
+              onPressed: (_) => _navigateToEditor(context, message: message),
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              icon: Icons.edit,
+              label: '编辑',
+              borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+            ),
+            SlidableAction(
+              onPressed: (_) => _confirmDelete(context, message, provider),
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              icon: Icons.delete,
+              label: '删除',
+              borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+            ),
+          ],
+        ),
+        child: Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          child: InkWell(
+            onTap: () => _shareAttachments(context, message),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      // 分类标签
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          message.subcategory ?? message.category,
+                          style: const TextStyle(fontSize: 11, color: Colors.blue),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          message.title,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      ),
+                      // 附件图标
+                      if (message.images.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          child: const Icon(Icons.image, size: 16, color: Colors.blue),
+                        ),
+                      if (message.files.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          child: const Icon(Icons.attach_file, size: 16, color: Colors.orange),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    message.content,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.grey[600], height: 1.4),
+                  ),
+                  if (message.tags.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: message.tags.map((tag) => _buildTag(tag)).toList(),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  // 快捷操作按钮
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      // 复制按钮
+                      TextButton.icon(
+                        onPressed: () => _copyText(context, message),
+                        icon: const Icon(Icons.copy, size: 16),
+                        label: const Text('复制', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                          minimumSize: Size.zero,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      // 分享按钮
+                      if (message.images.isNotEmpty || message.files.isNotEmpty)
+                        TextButton.icon(
+                          onPressed: () => _shareAttachments(context, message),
+                          icon: const Icon(Icons.share, size: 16),
+                          label: const Text('分享', style: TextStyle(fontSize: 12)),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                            minimumSize: Size.zero,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTag(String tag) {
+    final colors = {
+      '欢迎语': Colors.green,
+      '咨询': Colors.orange,
+      '售后': Colors.red,
+      '活动': Colors.purple,
+      '常用': Colors.blue,
+    };
+    final color = colors[tag] ?? Colors.grey;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(tag, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500)),
+    );
+  }
+
+  // === 操作方法 ===
+
+  /// 显示话术详情
+  void _showMessageDetail(BuildContext context, Message message) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                message.title,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              if (message.tags.isNotEmpty) ...[
+                Wrap(
+                  spacing: 8,
+                  children: message.tags.map((tag) => _buildTag(tag)).toList(),
+                ),
+                const SizedBox(height: 16),
+              ],
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: SelectableText(
+                  message.content,
+                  style: const TextStyle(fontSize: 16, height: 1.5),
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (message.images.isNotEmpty) ...[
+                Text('图片附件:', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: message.images.map((path) => Chip(label: Text(p.basename(path)))).toList(),
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (message.files.isNotEmpty) ...[
+                Text('文件附件:', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: message.files.map((path) => Chip(label: Text(p.basename(path)))).toList(),
+                ),
+                const SizedBox(height: 16),
+              ],
+              // 操作按钮行：复制 + 分享微信
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        _copyText(context, message);
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.copy, size: 18),
+                      label: const Text('复制'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _shareAttachments(context, message);
+                      },
+                      icon: const Icon(Icons.share, size: 18),
+                      label: const Text('分享'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 一键复制文字到剪贴板
+  void _copyText(BuildContext context, Message message) {
+    Clipboard.setData(ClipboardData(text: message.content));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('✅ 已复制到剪贴板'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// 分享（文字+图片+文件一起发）
+  Future<void> _shareAttachments(BuildContext context, Message message) async {
+    final allAttachments = <String>[...message.images, ...message.files];
+
+    if (allAttachments.isEmpty) {
+      _copyText(context, message);
+      return;
+    }
+
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final xfiles = <XFile>[];
+      for (final rawPath in allAttachments) {
+        // 相对路径转绝对路径（和 profile_screen.dart / editor_screen.dart 一致）
+        final absPath = rawPath.startsWith('/') ? rawPath : '${appDir.path}/$rawPath';
+        final file = File(absPath);
+        if (await file.exists()) {
+          xfiles.add(XFile(absPath));
+        }
+      }
+
+      if (xfiles.isNotEmpty) {
+        await Share.shareXFiles(xfiles, text: message.content);
+      } else {
+        _copyText(context, message);
+      }
+    } catch (e) {
+      _copyText(context, message);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⚠️ 分享出错，已复制文字: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+
+  void _navigateToEditor(BuildContext context, {Message? message, String? level}) {
+    // 如果没指定level，根据当前tab决定
+    String currentLevel;
+    if (level != null) {
+      currentLevel = level;
+    } else if (_tabController.index == 0) {
+      currentLevel = 'private'; // "全部"标签默认创建私人级话术
+    } else {
+      final levels = ['private', 'company', 'group', 'private'];
+      currentLevel = levels[_tabController.index];
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditorScreen(
+          message: message,
+          defaultLevel: currentLevel,
+        ),
+      ),
+    ).then((_) {
+      // 从编辑器返回后刷新
+      context.read<MessageProvider>().loadMessages();
+    });
+  }
+
+  void _confirmDelete(BuildContext context, Message message, MessageProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除话术"${message.title}"吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              provider.deleteMessage(message.id!);
+              Navigator.pop(context);
+            },
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getLevelName(String? level) {
+    if (level == null) return '';
+    switch (level) {
+      case 'company': return '公司级';
+      case 'group': return '小组级';
+      case 'private': return '私人';
+      default: return '';
+    }
+  }
+
+  void _showCategoryManager(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        minChildSize: 0.3,
+        expand: false,
+        builder: (context, scrollController) => _CategoryManagerSheet(
+          onRefresh: () => context.read<MessageProvider>().loadMessages(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showDebugInfo(BuildContext context) async {
+    final db = DatabaseService();
+    final stats = await db.getDebugStats();
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('🔍 数据库统计'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var entry in stats.entries)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(_getLevelName(entry.key)),
+                    Text('${entry.value}条', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
+            FutureBuilder<List<Message>>(
+              future: db.getMessages(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const SizedBox();
+                final all = snapshot.data!;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Divider(),
+                    const Text('前5条话术 level 值：', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    ...all.take(5).map((m) => Text('• "${m.title}" → level="${m.level}"')),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('关闭'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final dbInstance = await db.database;
+              await dbInstance.delete('messages');
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+                context.read<MessageProvider>().loadMessages();
+              }
+            },
+            child: const Text('清空话术（慎用）', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryManagerSheet extends StatefulWidget {
+  final VoidCallback onRefresh;
+
+  const _CategoryManagerSheet({required this.onRefresh});
+
+  @override
+  State<_CategoryManagerSheet> createState() => _CategoryManagerSheetState();
+}
+
+class _CategoryManagerSheetState extends State<_CategoryManagerSheet> {
+  final TextEditingController _nameController = TextEditingController();
+  String _selectedLevel = 'private'; // 默认私人话术
+  String _selectedColor = '#2563EB';
+  List<Map<String, dynamic>> _categories = [];
+  List<Map<String, dynamic>> _subcategories = [];
+
+  static const List<Map<String, String>> _presetColors = [
+    {'hex': '#2563EB', 'name': '蓝色'},
+    {'hex': '#10B981', 'name': '绿色'},
+    {'hex': '#F59E0B', 'name': '橙色'},
+    {'hex': '#EF4444', 'name': '红色'},
+    {'hex': '#8B5CF6', 'name': '紫色'},
+    {'hex': '#EC4899', 'name': '粉色'},
+    {'hex': '#06B6D4', 'name': '青色'},
+    {'hex': '#F97316', 'name': '深橙'},
+    {'hex': '#6366F1', 'name': '靛蓝'},
+    {'hex': '#14B8A6', 'name': '碧绿'},
+    {'hex': '#84CC16', 'name': '黄绿'},
+    {'hex': '#78716C', 'name': '灰色'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    final db = DatabaseService();
+    final all = await db.getAllCategories();
+    setState(() {
+      _categories = all.where((c) => c['parentId'] == null).toList();
+      _subcategories = all.where((c) => c['parentId'] != null).toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('分类管理', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // ====== 添加分类表单 ======
+          _buildAddForm(),
+          const Divider(height: 32),
+          // ====== 分类列表 ======
+          Expanded(
+            child: _categories.isEmpty
+                ? const Center(child: Text('暂无分类，请添加', style: TextStyle(color: Colors.grey)))
+                : ListView.builder(
+                    itemCount: _categories.length,
+                    itemBuilder: (context, index) {
+                      final cat = _categories[index];
+                      return _buildCategoryCard(cat);
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ====== 添加分类表单 ======
+  Widget _buildAddForm() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 类型选择
+          Row(
+            children: [
+              const Text('类型: ', style: TextStyle(fontWeight: FontWeight.w500)),
+              const SizedBox(width: 8),
+              _buildLevelChip('🏢 公司', 'company'),
+              const SizedBox(width: 6),
+              _buildLevelChip('👥 小组', 'group'),
+              const SizedBox(width: 6),
+              _buildLevelChip('👤 私人', 'private'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // 名称输入
+          TextField(
+            controller: _nameController,
+            maxLength: 16,
+            decoration: const InputDecoration(
+              hintText: '输入分类名称（最多16字）',
+              border: OutlineInputBorder(),
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              counterText: '',
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 颜色选择
+          const Text('颜色: ', style: TextStyle(fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _presetColors.map((c) {
+              final hex = c['hex']!;
+              final isSelected = _selectedColor == hex;
+              final color = _parseColor(hex);
+              return GestureDetector(
+                onTap: () => setState(() => _selectedColor = hex),
+                child: Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: isSelected ? Border.all(color: Colors.black
+
+  // ====== 三步向导 UI 方法 ======
+  Widget _buildStepIndicator() {
+    const steps = ['选择类型', '小组选择', '名称设置'];
+    return Row(
+      children: List.generate(steps.length, (i) {
+        final stepNum = i + 1;
+        final isActive = stepNum == _wizardStep;
+        final isPassed = stepNum < _wizardStep;
+        // Step 2 只在 level=group 时显示
+        if (i == 1 && _selectedLevel != 'group') return const SizedBox.shrink();
+        return Expanded(
+          child: Row(
+            children: [
+              Container(
+                width: 28, height: 28,
+                decoration: BoxDecoration(
+                  color: isActive || isPassed ? Colors.blue : Colors.grey[300],
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: isPassed
+                      ? const Icon(Icons.check, color: Colors.white, size: 16)
+                      : Text('${i + 1}', style: TextStyle(color: isActive ? Colors.white : Colors.grey[600], fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(child: Text(steps[i], style: TextStyle(fontSize: 12, color: isActive ? Colors.black : Colors.grey[600], fontWeight: isActive ? FontWeight.bold : FontWeight.normal), overflow: TextOverflow.ellipsis)),
+              if (i < steps.length - 1) ...[
+                const SizedBox(width: 8),
+                Expanded(child: Container(height: 2, color: isPassed ? Colors.blue : Colors.grey[300])),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildWizardContent() {
+    // Step 1: 类型选择
+    if (_wizardStep == 1) {
+      return Column(
+        key: const ValueKey('step1'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('选择话术类型', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          _buildTypeCard('company', '🏢 公司话术', '全公司可见，由管理员统一管理', Colors.blue),
+          const SizedBox(height: 12),
+          _buildTypeCard('group', '👥 小组话术', '仅本组成员可见，需选择所属小组', Colors.orange),
+          const SizedBox(height: 12),
+          _buildTypeCard('private', '👤 私人话术', '仅自己可见，个人专属', Colors.green),
+        ],
+      );
+    }
+    // Step 2: 小组选择（仅 group 级别）
+    if (_wizardStep == 2 && _selectedLevel == 'group') {
+      return Column(
+        key: const ValueKey('step2'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('选择小组', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('选择该分类所属的小组（仅你管理的小组）', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 16),
+          // 小组选择器（暂时用输入框，后续可从数据库加载小组列表）
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.group, color: Colors.orange),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    onChanged: (v) => _selectedGroupId = v,
+                    decoration: const InputDecoration(
+                      hintText: '输入小组ID或名称',
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text('提示：小组话术仅对该小组成员可见', style: TextStyle(fontSize: 11, color: Colors.grey)),
+        ],
+      );
+    }
+    // Step 3: 名称+颜色
+    return Column(
+      key: const ValueKey('step3'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('设置分类名称', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _nameController,
+          maxLength: 16,
+          decoration: const InputDecoration(
+            hintText: '输入分类名称（最多16字）',
+            border: OutlineInputBorder(),
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Text('选择颜色', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _presetColors.map((c) {
+            final hex = c['hex']!;
+            final isSelected = _selectedColor == hex;
+            final color = _parseColor(hex);
+            return GestureDetector(
+              onTap: () => setState(() => _selectedColor = hex),
+              child: Container(
+                width: 32, height: 32,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: isSelected ? Border.all(color: Colors.black, width: 3) : null,
+                  boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 4)] : null,
+                ),
+                child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 16) : null,
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTypeCard(String level, String title, String subtitle, Color color) {
+    final isSelected = _selectedLevel == level;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedLevel = level),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.1) : Colors.grey[50],
+          border: Border.all(color: isSelected ? color : Colors.grey[300]!, width: isSelected ? 2 : 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+              child: Center(child: Text(title.split(' ')[0], style: const TextStyle(fontSize: 24))),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title.split(' ').length > 1 ? title.split(' ').sublist(1).join(' ') : title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isSelected ? color : Colors.black)),
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                ],
+              ),
+            ),
+            if (isSelected) Icon(Icons.check_circle, color: color, size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWizardNav() {
+    return Row(
+      children: [
+        if (_wizardStep > 1)
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => setState(() {
+                // 如果在步骤3且level不是group，直接回步骤1
+                if (_wizardStep == 3 && _selectedLevel != 'group') {
+                  _wizardStep = 1;
+                } else {
+                  _wizardStep--;
+                }
+              }),
+              child: const Text('上一步'),
+            ),
+          ),
+        if (_wizardStep > 1) const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () {
+              if (_wizardStep == 1) {
+                // 从步骤1进入步骤2（group）或直接跳到步骤3
+                setState(() {
+                  _wizardStep = _selectedLevel == 'group' ? 2 : 3;
+                });
+              } else if (_wizardStep == 2) {
+                // 从步骤2进入步骤3
+                setState(() => _wizardStep = 3);
+              } else {
+                // 步骤3：提交
+                _addCategory();
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+            child: Text(_wizardStep == 3 ? '添加分类' : '下一步'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _addCategory() async {
+    if (_nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入分类名称')));
+      return;
+    }
+    final db = DatabaseService();
+    await db.insertCategory({
+      'name': _nameController.text,
+      'color': _selectedColor,
+      'level': _selectedLevel,
+      'groupId': _selectedLevel == 'group' ? _selectedGroupId : null,
+      'parentId': null,
+      'sort': _categories.length,
+    });
+    _nameController.clear();
+    _selectedGroupId = '';
+    setState(() => _wizardStep = 1); // 重置向导
+    await _loadCategories();
+    widget.onRefresh();
+  }
+
+  Future<void> _addSubcategory(Map<String, dynamic> parent) async {
+    String subLevel = parent['level'] as String? ?? 'company';
+    showDialog(
+      context: context,
+      builder: (context) {
+        final controller = TextEditingController();
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Text('添加子分类 - ${parent['name']}'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: controller, decoration: const InputDecoration(hintText: '输入子分类名称')),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(label: const Text('🏢 公司级'), selected: subLevel == 'company', onSelected: (s) => setDialogState(() => subLevel = 'company')),
+                    ChoiceChip(label: const Text('👥 小组级'), selected: subLevel == 'group', onSelected: (s) => setDialogState(() => subLevel = 'group')),
+                    ChoiceChip(label: const Text('👤 我的'), selected: subLevel == 'private', onSelected: (s) => setDialogState(() => subLevel = 'private')),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+              TextButton(
+                onPressed: () async {
+                  if (controller.text.isNotEmpty) {
+                    final db = DatabaseService();
+                    await db.insertCategory({
+                      'name': controller.text,
+                      'color': parent['color'],
+                      'level': subLevel,
+                      'parentId': parent['id'],
+                      'sort': 0,
+                    });
+                    await _loadCategories();
+                    widget.onRefresh();
+                  }
+                  Navigator.pop(context);
+                },
+                child: const Text('添加'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteCategory(int? id) async {
+    if (id == null) return;
+    final db = DatabaseService();
+    final dbInstance = await db.database;
+    await dbInstance.delete('categories', where: 'id = ?', whereArgs: [id]);
+    await dbInstance.delete('categories', where: 'parentId = ?', whereArgs: [id]);
+    await _loadCategories();
+    widget.onRefresh();
+  }
+}
