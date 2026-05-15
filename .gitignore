@@ -1,0 +1,46 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.lock
+!pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Android
+android/.gradle/
+android/app/build/
+android/build/
+
+# iOS
+ios/.symlinks/
+ios/Pods/
+ios/.generated/
+
+# Build artifacts
+*.apk
+*.ipa
+*.aab
+
+# Temp files
+*.log
+*.tmp
+
+# APK analysis
+apk_analysis/
+decompiled/
+decompiled_original/
+
+# Python scripts
+*.py
+
+# Bat files
+*.bat
+
+# Test
+test/
